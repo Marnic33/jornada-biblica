@@ -76,21 +76,32 @@ export class ArkInterior {
   }
 
   _neighbors(bayIndex) {
-    // adjacência na grade (esquerda, direita, cima, baixo)
+    // vizinhança só HORIZONTAL (esquerda/direita na mesma linha):
+    // regra intuitiva e sempre solucionável — basta deixar uma baia
+    // vazia ou outro predador entre o predador e a presa.
     const r = Math.floor(bayIndex / this.cols), c = bayIndex % this.cols;
     const out = [];
-    const cand = [[r, c - 1], [r, c + 1], [r - 1, c], [r + 1, c]];
-    for (const [rr, cc] of cand) {
-      if (cc < 0 || cc >= this.cols || rr < 0) continue;
-      const idx = rr * this.cols + cc;
+    for (const cc of [c - 1, c + 1]) {
+      if (cc < 0 || cc >= this.cols) continue;
+      const idx = r * this.cols + cc;
       if (idx < this.species.length) out.push(idx);
     }
     return out;
   }
 
   _placeInBay(bayIndex) {
-    if (!this.selected) { this.feedback.textContent = 'Primeiro escolha um animal abaixo.'; return; }
-    if (this.placement[bayIndex]) { this.feedback.textContent = 'Essa baia já está ocupada.'; return; }
+    // clicar numa baia ocupada devolve o animal ao painel
+    if (this.placement[bayIndex]) {
+      const sp = this.placement[bayIndex];
+      delete this.placement[bayIndex];
+      const slot = this.el.querySelector(`#slot-${bayIndex}`);
+      slot.textContent = ''; slot.classList.remove('filled');
+      const tok = this.el.querySelector(`.animal-token[data-species="${sp}"]`);
+      tok.classList.remove('placed');
+      this.feedback.textContent = `${sp} removido. Reposicione onde quiser.`;
+      return;
+    }
+    if (!this.selected) { this.feedback.textContent = 'Escolha um animal abaixo, depois clique numa baia.'; return; }
     // coloca
     this.placement[bayIndex] = this.selected;
     const slot = this.el.querySelector(`#slot-${bayIndex}`);
@@ -101,7 +112,7 @@ export class ArkInterior {
     this.audio?.collect();
     this.selected = null;
     const remaining = this.species.length - Object.keys(this.placement).length;
-    this.feedback.textContent = remaining > 0 ? `Faltam ${remaining} par(es).` : 'Todas alojadas! Confira e confirme.';
+    this.feedback.textContent = remaining > 0 ? `Faltam ${remaining} par(es). Dica: deixe uma baia vazia entre predador e presa.` : 'Todas alojadas! Confira e confirme.';
   }
 
   _confirm() {
@@ -126,10 +137,19 @@ export class ArkInterior {
       if (conflict) break;
     }
     if (conflict) {
-      this.feedback.innerHTML = `⚠️ ${conflict.a} não pode ficar ao lado de ${conflict.b}. Reorganize!`;
+      this.feedback.innerHTML = `⚠️ ${conflict.a} não pode ficar ao lado de ${conflict.b}. Mova um deles!`;
       this.feedback.classList.add('error');
-      // limpa para tentar de novo
-      setTimeout(() => this._reset(), 1800);
+      // devolve só os dois em conflito (mantém o resto do arranjo)
+      for (const sp of [conflict.a, conflict.b]) {
+        const idx = Object.keys(this.placement).find(k => this.placement[k] === sp);
+        if (idx != null) {
+          delete this.placement[idx];
+          const slot = this.el.querySelector(`#slot-${idx}`);
+          slot.textContent = ''; slot.classList.remove('filled');
+          const tok = this.el.querySelector(`.animal-token[data-species="${sp}"]`);
+          tok.classList.remove('placed');
+        }
+      }
     } else {
       this.audio?.victory();
       this.feedback.classList.remove('error');
