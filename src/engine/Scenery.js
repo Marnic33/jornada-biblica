@@ -126,17 +126,23 @@ export function createBush({ scale = 1 } = {}) {
   return g;
 }
 
-/** Espalha vegetação variada evitando zonas proibidas. */
+/** Espalha vegetação variada evitando zonas proibidas.
+ *  Retorna a lista de obstáculos sólidos {x, z, r} (troncos de árvore). */
 export function scatterVegetation(scene, { area = 120, trees = 26, bushes = 18, avoid = () => false } = {}) {
-  const place = (factory, scaleMin, scaleMax) => {
+  const obstacles = [];
+  const place = (factory, scaleMin, scaleMax, solid, baseR) => {
     let x, z, tries = 0;
     do { x = (Math.random() - 0.5) * area; z = (Math.random() - 0.5) * area; tries++; }
     while (avoid(x, z) && tries < 25);
-    const obj = factory({ scale: scaleMin + Math.random() * (scaleMax - scaleMin) });
+    const scale = scaleMin + Math.random() * (scaleMax - scaleMin);
+    const obj = factory({ scale });
     obj.position.set(x, 0, z);
     obj.rotation.y = Math.random() * Math.PI * 2;
     scene.add(obj);
+    if (solid) obstacles.push({ x, z, r: baseR * scale });
   };
-  for (let i = 0; i < trees; i++) place(createLushTree, 0.7, 1.4);
-  for (let i = 0; i < bushes; i++) place(createBush, 0.7, 1.3);
+  // árvores são sólidas (tronco ~0.5 de raio); arbustos não bloqueiam (passáveis)
+  for (let i = 0; i < trees; i++) place(createLushTree, 0.7, 1.4, true, 0.6);
+  for (let i = 0; i < bushes; i++) place(createBush, 0.7, 1.3, false, 0);
+  return obstacles;
 }
