@@ -5,15 +5,35 @@ import * as THREE from 'three';
  * Reutilizável por qualquer missão que tenha um avatar controlável.
  */
 export class PlayerController {
-  constructor(engine, mesh, { speed = 8, bounds = 58, camHeight = 13, camDist = 17 } = {}) {
+  constructor(engine, mesh, { speed = 8, bounds = 58, camHeight = 13, camDist = 17, radius = 0.8 } = {}) {
     this.engine = engine;
     this.mesh = mesh;
     this.speed = speed;
     this.bounds = bounds;
     this.camHeight = camHeight;
     this.camDist = camDist;
+    this.radius = radius;
     this.moving = false;
     this.enabled = true;
+    this.obstacles = []; // [{x, z, r}]
+  }
+
+  /** Registra obstáculos sólidos: array de {x, z, r}. */
+  setObstacles(list) { this.obstacles = list || []; }
+
+  /** Empurra uma posição para fora de qualquer obstáculo (colisão circular). */
+  resolveCollisions(pos, selfRadius = this.radius) {
+    for (const o of this.obstacles) {
+      const dx = pos.x - o.x, dz = pos.z - o.z;
+      const minDist = o.r + selfRadius;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < minDist * minDist && d2 > 0.0001) {
+        const d = Math.sqrt(d2);
+        const push = (minDist - d) / d;
+        pos.x += dx * push;
+        pos.z += dz * push;
+      }
+    }
   }
 
   update(dt) {
@@ -36,6 +56,8 @@ export class PlayerController {
       const b = this.bounds;
       this.mesh.position.x = Math.max(-b, Math.min(b, this.mesh.position.x));
       this.mesh.position.z = Math.max(-b, Math.min(b, this.mesh.position.z));
+      // colisão com obstáculos sólidos
+      this.resolveCollisions(this.mesh.position);
       // rotação suave para a direção do movimento
       const targetAngle = Math.atan2(mx, mz);
       this.mesh.rotation.y = this._lerpAngle(this.mesh.rotation.y, targetAngle, 0.2);
