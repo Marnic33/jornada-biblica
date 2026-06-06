@@ -2,6 +2,7 @@ import { Engine } from './engine/Engine.js';
 import { HUD } from './ui/HUD.js';
 import { Hub } from './ui/Hub.js';
 import { WinScreen } from './ui/WinScreen.js';
+import { AudioManager } from './engine/AudioManager.js';
 
 /**
  * Game — orquestra o fluxo: Hub → Missão → Vitória → Hub.
@@ -14,6 +15,7 @@ export class Game {
     this.engine.start();
     this.hud = new HUD(root);
     this.winScreen = new WinScreen(root);
+    this.audio = new AudioManager();
     this.currentMission = null;
     this._showHub();
   }
@@ -27,19 +29,38 @@ export class Game {
 
   _startMission(MissionClass) {
     this.hub.hide();
-    // limpa missão anterior
     if (this.currentMission) this.currentMission.dispose();
     this.engine.clearUpdates();
     this.engine.clearScene();
+    this.engine.setPaused(false);
 
-    this.currentMission = new MissionClass(this.engine, this.hud);
+    // áudio começa a partir do clique (exigência do navegador)
+    this.audio.startMusic();
+
+    this.currentMission = new MissionClass(this.engine, this.hud, this.audio);
     this.currentMission.onComplete = (meta) => this._onMissionComplete(meta);
     this.currentMission.setup();
     this._lastMissionClass = MissionClass;
+
+    // conecta os botões do HUD
+    this.hud.bindControls({
+      onPause: () => this.engine.setPaused(true),
+      onResume: () => this.engine.setPaused(false),
+      onRestart: () => this._startMission(MissionClass),
+      onHub: () => this._returnToHub(),
+      onToggleSound: (muted) => this.audio.setMuted(muted),
+    });
+  }
+
+  _returnToHub() {
+    if (this.currentMission) { this.currentMission.dispose(); this.currentMission = null; }
+    this.engine.clearScene();
+    this.engine.setPaused(false);
+    this.audio.stopMusic();
+    this._showHub();
   }
 
   _onMissionComplete(meta) {
-    // salva progresso
     try {
       const done = JSON.parse(localStorage.getItem('jb-completed') || '[]');
       if (!done.includes(meta.id)) {
@@ -50,11 +71,7 @@ export class Game {
     this.hud.hide();
     this.winScreen.show(meta, {
       onReplay: () => this._startMission(this._lastMissionClass),
-      onHub: () => {
-        if (this.currentMission) { this.currentMission.dispose(); this.currentMission = null; }
-        this.engine.clearScene();
-        this._showHub();
-      },
+      onHub: () => this._returnToHub(),
     });
   }
 }
