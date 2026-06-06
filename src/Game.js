@@ -5,6 +5,7 @@ import { WinScreen } from './ui/WinScreen.js';
 import { LevelSelect } from './ui/LevelSelect.js';
 import { ArkInterior } from './ui/ArkInterior.js';
 import { ArkCare } from './ui/ArkCare.js';
+import { Joystick } from './ui/Joystick.js';
 import { AudioManager } from './engine/AudioManager.js';
 import { NOAH_LEVELS } from './missions/noahLevels.js';
 
@@ -21,12 +22,20 @@ export class Game {
     this.hud = new HUD(root);
     this.winScreen = new WinScreen(root);
     this.audio = new AudioManager();
+    this.joystick = new Joystick(root, this.engine);
+    this.joystick.el.style.display = 'none'; // só durante a exploração
     this.currentMission = null;
     this._showHub();
   }
 
+  _setJoystick(visible) {
+    if (!this.joystick) return;
+    this.joystick.el.style.display = (visible && Joystick.shouldShow()) ? 'block' : 'none';
+  }
+
   _showHub() {
     this.hud.hide();
+    this._setJoystick(false);
     this.audio.stopMusic();
     if (this.hub) this.hub.dispose();
     if (this.levelSelect) { this.levelSelect.dispose(); this.levelSelect = null; }
@@ -71,10 +80,11 @@ export class Game {
     }
     this.currentMission.setup();
     this._lastLevel = level;
+    this._setJoystick(true); // exploração: joystick visível
 
     this.hud.bindControls({
-      onPause: () => this.engine.setPaused(true),
-      onResume: () => this.engine.setPaused(false),
+      onPause: () => { this.engine.setPaused(true); this._setJoystick(false); },
+      onResume: () => { this.engine.setPaused(false); this._setJoystick(true); },
       onRestart: () => this._startMission(MissionClass, level),
       onHub: () => this._returnHome(),
       onToggleSound: (muted) => this.audio.setMuted(muted),
@@ -83,6 +93,7 @@ export class Game {
 
   _showArkInterior(species) {
     this.hud.hide();
+    this._setJoystick(false);
     this.engine.setPaused(true);
     if (this.arkInterior) this.arkInterior.dispose();
     this.arkInterior = new ArkInterior(this.root, species, this.audio, {
