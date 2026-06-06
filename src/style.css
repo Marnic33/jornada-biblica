@@ -131,3 +131,34 @@ canvas { display: block; }
 .pause-overlay.show { opacity: 1; pointer-events: auto; }
 .pause-card { text-align: center; }
 .pause-card h2 { font-family: 'Cinzel', serif; font-size: 40px; color: var(--gold-bright); letter-spacing: 3px; margin-bottom: 24px; }
+
+/* ---------------- Cronômetro ---------------- */
+.timer {
+  font-family: 'Cinzel', serif; font-size: 20px; color: var(--gold-bright);
+  margin-top: 6px; display: none;
+}
+.timer.urgent { color: #e85a4a; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ---------------- Seleção de nível ---------------- */
+.level-select { justify-content: flex-start; padding-top: 8vh; }
+.level-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px; width: 100%; max-width: 760px; margin-bottom: 32px;
+}
+.level-card {
+  display: flex; align-items: center; gap: 16px; text-align: left;
+  background: var(--panel-bg); border: 1px solid rgba(212,168,83,.35);
+  border-radius: 8px; padding: 18px 20px; color: var(--cream); cursor: pointer;
+  font-family: 'EB Garamond', serif; transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.level-card:not(.locked):hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.5); border-color: var(--gold); }
+.level-num {
+  font-family: 'Cinzel', serif; font-size: 30px; font-weight: 700; color: var(--gold);
+  width: 54px; height: 54px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--gold); border-radius: 50%;
+}
+.level-body h3 { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold-bright); margin-bottom: 4px; }
+.level-body p { font-size: 14px; color: var(--cream); opacity: .85; }
+.level-card.locked { opacity: .45; cursor: not-allowed; }
+.level-card.locked .level-num { border-color: var(--dim); color: var(--dim); font-size: 22px; }
