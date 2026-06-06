@@ -162,3 +162,43 @@ canvas { display: block; }
 .level-body p { font-size: 14px; color: var(--cream); opacity: .85; }
 .level-card.locked { opacity: .45; cursor: not-allowed; }
 .level-card.locked .level-num { border-color: var(--dim); color: var(--dim); font-size: 22px; }
+
+/* ---------------- Fase: organizar a arca ---------------- */
+.ark-interior { justify-content: flex-start; padding-top: 5vh; gap: 8px; }
+.ark-header { margin-bottom: 18px; }
+.bay-grid {
+  display: grid; gap: 14px; width: 100%; max-width: 720px; margin-bottom: 16px;
+}
+.bay {
+  background: rgba(26,18,8,.6); border: 2px dashed rgba(212,168,83,.45);
+  border-radius: 10px; padding: 14px 8px; min-height: 92px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color .2s, background .2s;
+}
+.bay:hover { border-color: var(--gold); background: rgba(40,28,12,.7); }
+.bay-label { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; color: var(--dim); margin-bottom: 6px; }
+.bay-slot { font-size: 40px; min-height: 46px; line-height: 1; }
+.bay-slot.filled { animation: pop .3s ease; }
+@keyframes pop { 0% { transform: scale(0.3); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+.ark-feedback {
+  font-size: 17px; font-style: italic; color: var(--gold); min-height: 26px;
+  margin-bottom: 12px; text-align: center; transition: color .2s;
+}
+.ark-feedback.error { color: #e85a4a; font-style: normal; font-weight: 600; }
+
+.token-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 760px; margin-bottom: 18px; }
+.animal-token {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--panel-bg); border: 1px solid rgba(212,168,83,.4);
+  border-radius: 10px; padding: 10px 14px; cursor: pointer; color: var(--cream);
+  font-family: 'EB Garamond', serif; transition: transform .15s, border-color .15s, opacity .2s;
+}
+.animal-token:hover { transform: translateY(-3px); border-color: var(--gold); }
+.animal-token.selected { border-color: var(--gold); background: rgba(207,159,67,.25); transform: translateY(-3px); }
+.animal-token.placed { opacity: .3; pointer-events: none; }
+.token-emoji { font-size: 30px; line-height: 1; }
+.token-name { font-size: 13px; }
+.token-type { font-size: 10px; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; }
+.token-type.predador { color: #e8a05a; border: 1px solid #e8a05a; }
+.token-type.presa { color: #7fd17f; border: 1px solid #7fd17f; }
