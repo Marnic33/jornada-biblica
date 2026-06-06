@@ -4,6 +4,7 @@ import { Hub } from './ui/Hub.js';
 import { WinScreen } from './ui/WinScreen.js';
 import { LevelSelect } from './ui/LevelSelect.js';
 import { ArkInterior } from './ui/ArkInterior.js';
+import { ArkCare } from './ui/ArkCare.js';
 import { AudioManager } from './engine/AudioManager.js';
 import { NOAH_LEVELS } from './missions/noahLevels.js';
 
@@ -87,11 +88,10 @@ export class Game {
     this.arkInterior = new ArkInterior(this.root, species, this.audio, {
       onComplete: () => {
         this.arkInterior.hide();
-        this.engine.setPaused(false);
-        this.currentMission.complete();
+        this._showArkCare(species);
       },
       onBack: () => {
-        // pular a organização (continua valendo o nível concluído)
+        // pular organização e cuidado: conclui o nível direto
         this.arkInterior.hide();
         this.engine.setPaused(false);
         this.currentMission.complete();
@@ -100,7 +100,31 @@ export class Game {
     this.arkInterior.show();
   }
 
+  _showArkCare(species) {
+    if (this.arkCare) this.arkCare.dispose();
+    this.arkCare = new ArkCare(this.root, species, this.audio, {
+      onComplete: () => {
+        this.arkCare.hide();
+        this.engine.setPaused(false);
+        this.currentMission.complete();
+      },
+      onFail: () => {
+        this.arkCare.hide();
+        this._onLevelFail(this._lastLevel);
+      },
+      onBack: () => {
+        // sair do cuidado: conclui o nível (já organizou)
+        this.arkCare.hide();
+        this.engine.setPaused(false);
+        this.currentMission.complete();
+      },
+    });
+    this.arkCare.show();
+    this.arkCare.start();
+  }
+
   _returnHome() {
+    if (this.arkCare) { this.arkCare.dispose(); this.arkCare = null; }
     if (this.arkInterior) { this.arkInterior.dispose(); this.arkInterior = null; }
     if (this.currentMission) { this.currentMission.dispose(); this.currentMission = null; }
     this.engine.clearScene();
