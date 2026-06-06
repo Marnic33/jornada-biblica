@@ -39,3 +39,20 @@ export const NOAH_LEVELS = [
     intro: 'As primeiras gotas caem. Salve todas as nove espécies antes do fim!',
   },
 ];
+
+/**
+ * Metadados de cada espécie para a fase de organização na arca.
+ * - type: 'predador' ou 'presa' (predadores não podem ficar ao lado de presas)
+ * - emoji: ícone usado na vista da arca
+ */
+export const SPECIES_INFO = {
+  'Leões':     { type: 'predador', emoji: '🦁' },
+  'Ursos':     { type: 'predador', emoji: '🐻' },
+  'Ovelhas':   { type: 'presa',    emoji: '🐑' },
+  'Cervos':    { type: 'presa',    emoji: '🦌' },
+  'Camelos':   { type: 'presa',    emoji: '🐫' },
+  'Elefantes': { type: 'presa',    emoji: '🐘' },
+  'Zebras':    { type: 'presa',    emoji: '🦓' },
+  'Girafas':   { type: 'presa',    emoji: '🦒' },
+  'Macacos':   { type: 'presa',    emoji: '🐒' },
+};
