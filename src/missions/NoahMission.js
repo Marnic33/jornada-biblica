@@ -4,8 +4,7 @@ import { createTerrain } from '../engine/WorldBuilder.js';
 import { PlayerController } from '../engine/PlayerController.js';
 import { ANIMAL_FACTORY, createNoah } from '../engine/Creatures.js';
 import { createSky, createMountains, createRiver, createClouds, scatterVegetation } from '../engine/Scenery.js';
-
-const SPECIES = ['Leões', 'Elefantes', 'Ovelhas', 'Camelos', 'Cervos'];
+import { NOAH_LEVELS } from './noahLevels.js';
 
 const VERSES = [
   { t: 'Faze uma arca de madeira de gofer; farás compartimentos na arca e a betumarás por dentro e por fora.', r: 'Gênesis 6:14' },
@@ -25,25 +24,36 @@ export class NoahMission extends Mission {
     accent: '#cf9f43',
   };
 
-  constructor(engine, ui, audio) {
+  constructor(engine, ui, audio, level) {
     super(engine, ui);
     this.audio = audio;
+    this.level = level || NOAH_LEVELS[0];
+    this.onFail = null;
   }
 
   setup() {
     this.animals = [];
     this.collectedPairs = 0;
-    this.target = SPECIES.length;
+    this.species = this.level.species;
+    this.target = this.species.length;
     this.clouds = [];
+    this.timeLeft = this.level.timeLimit || 0;
+    this.failed = false;
+    this.finished = false;
 
+    // céu/atmosfera escurecem conforme o nível avança (tensão do dilúvio)
+    const darkness = Math.min((this.level.n - 1) * 0.12, 0.4);
     this.engine.setupAtmosphere({
       skyColor: 0x2a1d0d, fogColor: 0xc88a4a, fogNear: 60, fogFar: 200,
-      sunColor: 0xffd29a, sunIntensity: 2.6, sunPos: [-40, 55, 30],
-      ambientColor: 0xffe0b8, ambientIntensity: 0.55,
+      sunColor: 0xffd29a, sunIntensity: 2.6 - darkness * 2, sunPos: [-40, 55, 30],
+      ambientColor: 0xffe0b8, ambientIntensity: 0.55 - darkness * 0.3,
       hemiSky: 0xffe8c0, hemiGround: 0x4a6b30, hemiIntensity: 0.5,
     });
-    createSky(this.engine.scene, { top: 0x3a6ea5, bottom: 0xf4b070 });
-    this.clouds = createClouds(this.engine.scene, { count: 10 });
+    createSky(this.engine.scene, {
+      top: this.level.n >= 3 ? 0x4a5570 : 0x3a6ea5,
+      bottom: this.level.n >= 3 ? 0xc89060 : 0xf4b070,
+    });
+    this.clouds = createClouds(this.engine.scene, { count: 8 + this.level.n * 3 });
     createMountains(this.engine.scene, { radius: 135, count: 24, color: 0x5a6b4a });
 
     this.engine.scene.add(createTerrain({ size: 200, color: 0x6fa03d, amplitude: 0.6, segments: 80 }));
@@ -59,7 +69,7 @@ export class NoahMission extends Mission {
     this._buildArk();
 
     scatterVegetation(this.engine.scene, {
-      area: 150, trees: 32, bushes: 22,
+      area: this.level.area + 30, trees: 28, bushes: 20,
       avoid: (x, z) => Math.abs(x) < 6 || (z < -16 && Math.abs(x) < 16) || (Math.abs(z - 30) < 8),
     });
 
@@ -70,10 +80,11 @@ export class NoahMission extends Mission {
 
     this._spawnAnimals();
 
-    this.ui.setCounterLabel('Pares na Arca');
+    this.ui.setCounterLabel(`Nível ${this.level.n} · Pares`);
     this.ui.setCounter(0, this.target);
-    this.ui.setObjective('Aproxime-se de cada animal para que ele o siga, e conduza os pares até a porta da arca.');
+    this.ui.setObjective(this.level.intro);
     this.ui.setControls('Mover: <b>W A S D</b> ou <b>setas</b> · Aproxime-se dos animais · Leve-os à <b>arca</b>');
+    this.ui.setTimer(this.level.timeLimit ? this.timeLeft : -1);
     this._updateList();
     this.ui.show();
     this.ui.showVerse(VERSES[0].t, VERSES[0].r);
@@ -113,14 +124,16 @@ export class NoahMission extends Mission {
   }
 
   _spawnAnimals() {
-    SPECIES.forEach((name, i) => {
+    const area = this.level.area;
+    this.species.forEach((name, i) => {
       for (let k = 0; k < 2; k++) {
         const factory = ANIMAL_FACTORY[name];
+        if (!factory) continue;
         const c = factory();
         let x, z;
         do {
-          x = (Math.random() - 0.5) * 100;
-          z = (Math.random() * 0.55 + 0.08) * 48 - 4;
+          x = (Math.random() - 0.5) * area;
+          z = (Math.random() * 0.55 + 0.08) * (area * 0.45) - 4;
         } while (Math.abs(x) < 5);
         c.group.position.set(x, 0, z);
         c.group.rotation.y = Math.random() * Math.PI * 2;
@@ -135,15 +148,23 @@ export class NoahMission extends Mission {
   }
 
   _updateList() {
-    this.ui.setList(SPECIES.map((name, i) => ({
+    this.ui.setList(this.species.map((name, i) => ({
       label: name,
       done: this.animals.filter(a => a.partnerId === i && a.collected).length === 2,
     })));
   }
 
   update(dt, t) {
+    if (this.finished) return;
     this.controller.update(dt);
     this.noah.userData.animate?.(t, this.controller.moving);
+
+    // cronômetro do dilúvio
+    if (this.level.timeLimit && !this.failed) {
+      this.timeLeft -= dt;
+      this.ui.setTimer(this.timeLeft);
+      if (this.timeLeft <= 0) { this._failLevel(); return; }
+    }
 
     for (const c of this.clouds) {
       c.position.x += c.userData.drift * dt;
@@ -195,13 +216,26 @@ export class NoahMission extends Mission {
   }
 
   _checkProgress() {
-    this.collectedPairs = SPECIES.reduce((acc, _, i) =>
+    this.collectedPairs = this.species.reduce((acc, _, i) =>
       acc + (this.animals.filter(a => a.partnerId === i && a.collected).length === 2 ? 1 : 0), 0);
     this.ui.setCounter(this.collectedPairs, this.target);
     this._updateList();
     if (this.collectedPairs >= this.target) {
+      this.finished = true;
       this.audio?.victory();
+      // salva nível concluído
+      try {
+        const done = JSON.parse(localStorage.getItem('jb-noah-levels') || '[]');
+        if (!done.includes(this.level.n)) { done.push(this.level.n); localStorage.setItem('jb-noah-levels', JSON.stringify(done)); }
+      } catch {}
       setTimeout(() => this.complete(), 900);
     }
+  }
+
+  _failLevel() {
+    this.failed = true;
+    this.finished = true;
+    this.ui.setTimer(-1);
+    this.onFail?.(this.level);
   }
 }
