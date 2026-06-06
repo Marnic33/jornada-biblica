@@ -229,6 +229,101 @@ export function createNoah() {
   return g;
 }
 
+/* ----------------------------- ZEBRA ---------------------------- */
+export function createZebra() {
+  const g = new THREE.Group();
+  const white = mat(0xf0ece0), black = mat(0x2a2620);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.7, 4, 8), white);
+  torso.rotation.z = Math.PI / 2; torso.position.y = 0.95; torso.castShadow = true; g.add(torso);
+  // listras
+  for (let i = 0; i < 5; i++) {
+    const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.05, 4, 10), black);
+    stripe.position.set(-0.35 + i * 0.18, 0.95, 0); stripe.rotation.y = Math.PI / 2; g.add(stripe);
+  }
+  const legs = addLegs(g, black, { spreadX: 0.28, spreadZ: 0.24, h: 0.85, y: 0.42 });
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.5, 6), white);
+  neck.position.set(0.5, 1.2, 0); neck.rotation.z = -0.7; g.add(neck);
+  const head = new THREE.Group();
+  const skull = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 1), white);
+  head.add(skull);
+  const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.12), black);
+  snout.position.set(0.16, -0.04, 0); head.add(snout);
+  head.position.set(0.75, 1.5, 0); g.add(head);
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.4, 5), black);
+  tail.position.set(-0.6, 1.0, 0); tail.rotation.z = 0.4; g.add(tail);
+  return { group: g, animate: animator(g, legs, { head, tail, bodyBaseY: 0.95 }) };
+}
+
+/* ---------------------------- GIRAFA ---------------------------- */
+export function createGiraffe() {
+  const g = new THREE.Group();
+  const tan = mat(0xe0b050), spot = mat(0xa07028);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.6, 4, 8), tan);
+  torso.rotation.z = Math.PI / 2; torso.position.y = 1.5; torso.castShadow = true; g.add(torso);
+  // manchas
+  for (let i = 0; i < 5; i++) {
+    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), spot);
+    s.position.set((Math.random() - 0.5) * 0.7, 1.5 + (Math.random() - 0.5) * 0.5, 0.38);
+    g.add(s);
+  }
+  const legs = addLegs(g, tan, { spreadX: 0.32, spreadZ: 0.28, h: 1.3, y: 0.65 });
+  // pescoço bem longo
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.6, 6), tan);
+  neck.position.set(0.55, 2.4, 0); neck.rotation.z = -0.5; g.add(neck);
+  const head = new THREE.Group();
+  const skull = new THREE.Mesh(new THREE.IcosahedronGeometry(0.18, 1), tan);
+  head.add(skull);
+  for (const dx of [-0.08, 0.08]) {
+    const horn = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 5), spot);
+    horn.position.set(dx, 0.2, 0); head.add(horn);
+  }
+  head.position.set(1.05, 3.1, 0); g.add(head);
+  return { group: g, animate: animator(g, legs, { head, bodyBaseY: 1.5 }) };
+}
+
+/* ----------------------------- URSO ----------------------------- */
+export function createBear() {
+  const g = new THREE.Group();
+  const brown = mat(0x6b4326), dark = mat(0x4a2e18);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.6, 4, 8), brown);
+  torso.rotation.z = Math.PI / 2; torso.position.y = 0.9; torso.castShadow = true; g.add(torso);
+  const legs = addLegs(g, dark, { spreadX: 0.34, spreadZ: 0.3, h: 0.6, y: 0.3 });
+  const head = new THREE.Group();
+  const skull = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 1), brown);
+  head.add(skull);
+  const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.2), dark);
+  snout.position.set(0, -0.06, 0.3); head.add(snout);
+  for (const dx of [-0.2, 0.2]) {
+    const ear = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 0), brown);
+    ear.position.set(dx, 0.3, 0); head.add(ear);
+  }
+  head.position.set(0.6, 1.05, 0); g.add(head);
+  return { group: g, animate: animator(g, legs, { head, bodyBaseY: 0.9 }) };
+}
+
+/* ---------------------------- MACACO ---------------------------- */
+export function createMonkey() {
+  const g = new THREE.Group();
+  const brown = mat(0x7a5230), light = mat(0xc99a6a);
+  const torso = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 1), brown);
+  torso.scale.set(1, 1.2, 0.9); torso.position.y = 0.65; torso.castShadow = true; g.add(torso);
+  const legs = addLegs(g, brown, { spreadX: 0.18, spreadZ: 0.16, h: 0.4, y: 0.2 });
+  const head = new THREE.Group();
+  const skull = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 1), brown);
+  head.add(skull);
+  const face = new THREE.Mesh(new THREE.IcosahedronGeometry(0.15, 1), light);
+  face.position.set(0, -0.02, 0.12); face.scale.set(1, 1, 0.6); head.add(face);
+  for (const dx of [-0.2, 0.2]) {
+    const ear = new THREE.Mesh(new THREE.CircleGeometry(0.08, 8), brown);
+    ear.position.set(dx, 0, 0); ear.material.side = THREE.DoubleSide; head.add(ear);
+  }
+  head.position.set(0.3, 1.1, 0); g.add(head);
+  // cauda curva
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.04, 5, 10, Math.PI * 1.3), brown);
+  tail.position.set(-0.35, 0.65, 0); tail.rotation.set(0, 0, -0.5); g.add(tail);
+  return { group: g, animate: animator(g, legs, { head, bodyBaseY: 0.65 }) };
+}
+
 /** Mapa espécie → fábrica, para a missão usar por nome. */
 export const ANIMAL_FACTORY = {
   'Leões': createLion,
@@ -236,4 +331,8 @@ export const ANIMAL_FACTORY = {
   'Ovelhas': createSheep,
   'Camelos': createCamel,
   'Cervos': createDeer,
+  'Zebras': createZebra,
+  'Girafas': createGiraffe,
+  'Ursos': createBear,
+  'Macacos': createMonkey,
 };
