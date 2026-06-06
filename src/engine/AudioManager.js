@@ -75,6 +75,27 @@ export class AudioManager {
     else if (!this._musicTimer) this.startMusic();
   }
 
+  /** Trovão — ruído grave com decaimento (para a cena do dilúvio). */
+  thunder() {
+    if (!this.ctx || !this.enabled) return;
+    const t = this.ctx.currentTime;
+    // ruído branco filtrado grave
+    const dur = 1.2;
+    const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 400;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    noise.connect(lp); lp.connect(g); g.connect(this.master);
+    noise.start(t); noise.stop(t + dur);
+  }
+
   /** Efeito de coleta — arpejo ascendente alegre. */
   collect() {
     if (!this.ctx || !this.enabled) return;
