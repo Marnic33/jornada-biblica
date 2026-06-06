@@ -202,3 +202,37 @@ canvas { display: block; }
 .token-type { font-size: 10px; letter-spacing: .5px; text-transform: uppercase; padding: 1px 6px; border-radius: 8px; }
 .token-type.predador { color: #e8a05a; border: 1px solid #e8a05a; }
 .token-type.presa { color: #7fd17f; border: 1px solid #7fd17f; }
+
+/* ---------------- Fase: cuidar no dilúvio ---------------- */
+.ark-care { justify-content: flex-start; padding-top: 4vh; gap: 6px; }
+.care-header { margin-bottom: 12px; }
+.care-topbar { display: flex; gap: 24px; margin-bottom: 18px; flex-wrap: wrap; justify-content: center; }
+.care-stat { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 1px; color: var(--cream); display: flex; align-items: center; gap: 10px; }
+.bar { background: rgba(0,0,0,.4); border: 1px solid rgba(212,168,83,.3); border-radius: 10px; overflow: hidden; height: 12px; width: 90px; }
+.bar.wide { width: 160px; height: 14px; }
+.bar-fill { height: 100%; width: 0%; transition: width .2s linear; border-radius: 10px; }
+.bar-fill.hunger { background: linear-gradient(90deg,#d4a853,#e87a3a); }
+.bar-fill.thirst { background: linear-gradient(90deg,#5aa8d4,#3a7ac8); }
+.bar-fill.hunger.high, .bar-fill.thirst.high { background: #e84a3a; }
+.bar-fill.health { background: linear-gradient(90deg,#7fd17f,#4aa84a); }
+.bar-fill.rain { background: linear-gradient(90deg,#8aa8d4,#5a7ab0); }
+
+.care-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; width: 100%; max-width: 760px; margin-bottom: 18px; }
+.care-card {
+  background: var(--panel-bg); border: 1px solid rgba(212,168,83,.4);
+  border-radius: 10px; padding: 12px 10px; cursor: pointer; text-align: center;
+  transition: transform .15s, border-color .15s;
+}
+.care-card:hover { transform: translateY(-3px); border-color: var(--gold); }
+.care-emoji { font-size: 34px; line-height: 1; }
+.care-name { font-size: 13px; color: var(--cream); margin: 4px 0 8px; }
+.bar-wrap { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.bar-label { font-size: 12px; }
+
+.care-tools { display: flex; gap: 14px; margin-bottom: 12px; }
+.tool-btn {
+  font-family: 'Cinzel', serif; font-size: 15px; color: var(--cream);
+  background: var(--panel-bg); border: 1px solid rgba(212,168,83,.4);
+  border-radius: 10px; padding: 12px 22px; cursor: pointer; transition: all .15s;
+}
+.tool-btn.selected { border-color: var(--gold); background: rgba(207,159,67,.25); transform: translateY(-2px); }
