@@ -1,0 +1,153 @@
+import { SPECIES_INFO } from '../missions/noahLevels.js';
+
+/**
+ * ArkInterior — fase de quebra-cabeça: alojar cada par de animais
+ * na baia correta dentro da arca.
+ *
+ * Regras do quebra-cabeça:
+ *  - há uma baia por espécie (rotulada);
+ *  - predadores e presas não podem ocupar baias VIZINHAS;
+ *  - cada par vai na sua própria baia.
+ * O jogador clica num animal (painel inferior) e depois numa baia.
+ *
+ * É um overlay 2D top-down — leve, claro e ótimo no celular.
+ */
+export class ArkInterior {
+  constructor(root, species, audio, { onComplete, onBack }) {
+    this.root = root;
+    this.species = species;
+    this.audio = audio;
+    this.onComplete = onComplete;
+    this.onBack = onBack;
+    this.selected = null;
+    // layout: distribui as baias em grade; vizinhança = adjacência na grade
+    this.cols = Math.min(species.length, 4);
+    this.placement = {}; // bayIndex -> species
+    this._build();
+  }
+
+  _build() {
+    const n = this.species.length;
+    this.el = document.createElement('div');
+    this.el.className = 'screen ark-interior';
+    const bays = Array.from({ length: n }, (_, i) =>
+      `<div class="bay" data-bay="${i}"><div class="bay-label">Baia ${i + 1}</div><div class="bay-slot" id="slot-${i}"></div></div>`
+    ).join('');
+    const tokens = this.species.map(s =>
+      `<button class="animal-token" data-species="${s}">
+         <span class="token-emoji">${SPECIES_INFO[s]?.emoji || '🐾'}</span>
+         <span class="token-name">${s}</span>
+         <span class="token-type ${SPECIES_INFO[s]?.type}">${SPECIES_INFO[s]?.type === 'predador' ? 'predador' : 'presa'}</span>
+       </button>`
+    ).join('');
+
+    this.el.innerHTML = `
+      <div class="ark-header">
+        <h1>Organize a Arca</h1>
+        <p class="hub-sub">Aloje cada par numa baia. <b>Predadores não podem ficar ao lado de presas.</b></p>
+      </div>
+      <div class="bay-grid" style="grid-template-columns: repeat(${this.cols}, 1fr)">${bays}</div>
+      <div class="ark-feedback" id="ark-feedback">Escolha um animal abaixo e clique numa baia.</div>
+      <div class="token-row">${tokens}</div>
+      <div class="win-actions">
+        <button class="btn btn-ghost" id="ark-back">← Voltar</button>
+        <button class="btn" id="ark-confirm">Confirmar arranjo</button>
+      </div>
+    `;
+    this.root.appendChild(this.el);
+
+    this.feedback = this.el.querySelector('#ark-feedback');
+    this.el.querySelectorAll('.animal-token').forEach(tok => {
+      tok.onclick = () => this._selectToken(tok);
+    });
+    this.el.querySelectorAll('.bay').forEach(bay => {
+      bay.onclick = () => this._placeInBay(Number(bay.dataset.bay));
+    });
+    this.el.querySelector('#ark-back').onclick = () => this.onBack();
+    this.el.querySelector('#ark-confirm').onclick = () => this._confirm();
+  }
+
+  _selectToken(tok) {
+    if (tok.classList.contains('placed')) return;
+    this.el.querySelectorAll('.animal-token').forEach(t => t.classList.remove('selected'));
+    tok.classList.add('selected');
+    this.selected = tok.dataset.species;
+    this.feedback.textContent = `${this.selected} selecionado — escolha uma baia.`;
+  }
+
+  _neighbors(bayIndex) {
+    // adjacência na grade (esquerda, direita, cima, baixo)
+    const r = Math.floor(bayIndex / this.cols), c = bayIndex % this.cols;
+    const out = [];
+    const cand = [[r, c - 1], [r, c + 1], [r - 1, c], [r + 1, c]];
+    for (const [rr, cc] of cand) {
+      if (cc < 0 || cc >= this.cols || rr < 0) continue;
+      const idx = rr * this.cols + cc;
+      if (idx < this.species.length) out.push(idx);
+    }
+    return out;
+  }
+
+  _placeInBay(bayIndex) {
+    if (!this.selected) { this.feedback.textContent = 'Primeiro escolha um animal abaixo.'; return; }
+    if (this.placement[bayIndex]) { this.feedback.textContent = 'Essa baia já está ocupada.'; return; }
+    // coloca
+    this.placement[bayIndex] = this.selected;
+    const slot = this.el.querySelector(`#slot-${bayIndex}`);
+    slot.textContent = SPECIES_INFO[this.selected]?.emoji || '🐾';
+    slot.classList.add('filled');
+    const tok = this.el.querySelector(`.animal-token[data-species="${this.selected}"]`);
+    tok.classList.add('placed'); tok.classList.remove('selected');
+    this.audio?.collect();
+    this.selected = null;
+    const remaining = this.species.length - Object.keys(this.placement).length;
+    this.feedback.textContent = remaining > 0 ? `Faltam ${remaining} par(es).` : 'Todas alojadas! Confira e confirme.';
+  }
+
+  _confirm() {
+    if (Object.keys(this.placement).length < this.species.length) {
+      this.feedback.textContent = 'Aloje todos os pares antes de confirmar.';
+      return;
+    }
+    // verifica regra: predador não pode ser vizinho de presa
+    let conflict = null;
+    for (const [idxStr, sp] of Object.entries(this.placement)) {
+      const idx = Number(idxStr);
+      const type = SPECIES_INFO[sp]?.type;
+      for (const nb of this._neighbors(idx)) {
+        const nbSp = this.placement[nb];
+        if (!nbSp) continue;
+        const nbType = SPECIES_INFO[nbSp]?.type;
+        if ((type === 'predador' && nbType === 'presa') || (type === 'presa' && nbType === 'predador')) {
+          conflict = { a: sp, b: nbSp };
+          break;
+        }
+      }
+      if (conflict) break;
+    }
+    if (conflict) {
+      this.feedback.innerHTML = `⚠️ ${conflict.a} não pode ficar ao lado de ${conflict.b}. Reorganize!`;
+      this.feedback.classList.add('error');
+      // limpa para tentar de novo
+      setTimeout(() => this._reset(), 1800);
+    } else {
+      this.audio?.victory();
+      this.feedback.classList.remove('error');
+      this.feedback.textContent = '✓ Arranjo perfeito! A arca está organizada.';
+      setTimeout(() => this.onComplete(), 1200);
+    }
+  }
+
+  _reset() {
+    this.placement = {};
+    this.selected = null;
+    this.feedback.classList.remove('error');
+    this.feedback.textContent = 'Tente outro arranjo — escolha um animal e uma baia.';
+    this.el.querySelectorAll('.bay-slot').forEach(s => { s.textContent = ''; s.classList.remove('filled'); });
+    this.el.querySelectorAll('.animal-token').forEach(t => t.classList.remove('placed', 'selected'));
+  }
+
+  show() { this.el.classList.remove('gone'); requestAnimationFrame(() => this.el.classList.remove('hidden')); }
+  hide() { this.el.classList.add('hidden'); setTimeout(() => this.el.classList.add('gone'), 600); }
+  dispose() { this.el.remove(); }
+}
