@@ -24,6 +24,9 @@ export class PlayerController {
     if (k['s'] || k['arrowdown']) mz += 1;
     if (k['a'] || k['arrowleft']) mx -= 1;
     if (k['d'] || k['arrowright']) mx += 1;
+    // input do joystick virtual (toque), se houver
+    const j = this.engine.joystick;
+    if (j && (j.x !== 0 || j.y !== 0)) { mx += j.x; mz += j.y; }
     const len = Math.hypot(mx, mz);
     this.moving = len > 0;
     if (this.moving) {
