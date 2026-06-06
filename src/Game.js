@@ -3,6 +3,7 @@ import { HUD } from './ui/HUD.js';
 import { Hub } from './ui/Hub.js';
 import { WinScreen } from './ui/WinScreen.js';
 import { LevelSelect } from './ui/LevelSelect.js';
+import { ArkInterior } from './ui/ArkInterior.js';
 import { AudioManager } from './engine/AudioManager.js';
 import { NOAH_LEVELS } from './missions/noahLevels.js';
 
@@ -63,6 +64,10 @@ export class Game {
     this.currentMission = new MissionClass(this.engine, this.hud, this.audio, level);
     this.currentMission.onComplete = (meta) => this._onMissionComplete(meta);
     this.currentMission.onFail = (lv) => this._onLevelFail(lv);
+    // após reunir os pares, abre a fase de organizar a arca (só Noé)
+    if (MissionClass.meta.id === 'noe') {
+      this.currentMission.onGatherComplete = (species) => this._showArkInterior(species);
+    }
     this.currentMission.setup();
     this._lastLevel = level;
 
@@ -75,7 +80,28 @@ export class Game {
     });
   }
 
+  _showArkInterior(species) {
+    this.hud.hide();
+    this.engine.setPaused(true);
+    if (this.arkInterior) this.arkInterior.dispose();
+    this.arkInterior = new ArkInterior(this.root, species, this.audio, {
+      onComplete: () => {
+        this.arkInterior.hide();
+        this.engine.setPaused(false);
+        this.currentMission.complete();
+      },
+      onBack: () => {
+        // pular a organização (continua valendo o nível concluído)
+        this.arkInterior.hide();
+        this.engine.setPaused(false);
+        this.currentMission.complete();
+      },
+    });
+    this.arkInterior.show();
+  }
+
   _returnHome() {
+    if (this.arkInterior) { this.arkInterior.dispose(); this.arkInterior = null; }
     if (this.currentMission) { this.currentMission.dispose(); this.currentMission = null; }
     this.engine.clearScene();
     this.engine.setPaused(false);
