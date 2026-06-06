@@ -208,6 +208,13 @@ export class NoahMission extends Mission {
         a.wander += (Math.random() - 0.5) * dt * 2;
         a.obj.position.x += Math.sin(a.wander) * 0.5 * dt;
         a.obj.position.z += Math.cos(a.wander) * 0.5 * dt;
+        // mantém os animais dentro dos limites do mundo (não fogem mais!)
+        const b = 72;
+        if (Math.abs(a.obj.position.x) > b || Math.abs(a.obj.position.z) > b) {
+          a.obj.position.x = Math.max(-b, Math.min(b, a.obj.position.x));
+          a.obj.position.z = Math.max(-b, Math.min(b, a.obj.position.z));
+          a.wander += Math.PI; // vira e volta para dentro
+        }
         a.obj.rotation.y = a.wander;
         moving = Math.random() < 0.4;
       }
@@ -223,12 +230,17 @@ export class NoahMission extends Mission {
     if (this.collectedPairs >= this.target) {
       this.finished = true;
       this.audio?.victory();
+      this.ui.setTimer(-1); // para o cronômetro: animais a salvo
       // salva nível concluído
       try {
         const done = JSON.parse(localStorage.getItem('jb-noah-levels') || '[]');
         if (!done.includes(this.level.n)) { done.push(this.level.n); localStorage.setItem('jb-noah-levels', JSON.stringify(done)); }
       } catch {}
-      setTimeout(() => this.complete(), 900);
+      // fase 2: organizar a arca (Game decide e depois chama complete)
+      setTimeout(() => {
+        if (this.onGatherComplete) this.onGatherComplete(this.species);
+        else this.complete();
+      }, 900);
     }
   }
 
