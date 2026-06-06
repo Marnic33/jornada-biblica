@@ -6,6 +6,8 @@ import { LevelSelect } from './ui/LevelSelect.js';
 import { ArkInterior } from './ui/ArkInterior.js';
 import { ArkCare } from './ui/ArkCare.js';
 import { Joystick } from './ui/Joystick.js';
+import { FloodScene } from './ui/FloodScene.js';
+import { RainbowScene } from './ui/RainbowScene.js';
 import { AudioManager } from './engine/AudioManager.js';
 import { NOAH_LEVELS } from './missions/noahLevels.js';
 
@@ -99,10 +101,10 @@ export class Game {
     this.arkInterior = new ArkInterior(this.root, species, this.audio, {
       onComplete: () => {
         this.arkInterior.hide();
-        this._showArkCare(species);
+        this._showFlood(species);
       },
       onBack: () => {
-        // pular organização e cuidado: conclui o nível direto
+        // pular tudo: conclui o nível direto
         this.arkInterior.hide();
         this.engine.setPaused(false);
         this.currentMission.complete();
@@ -111,30 +113,59 @@ export class Game {
     this.arkInterior.show();
   }
 
+  _showFlood(species) {
+    // cena 3D cinematográfica: usa a Engine, limpa a cena anterior
+    this.engine.clearUpdates();
+    this.engine.clearScene();
+    this.engine.setPaused(false);
+    this.floodScene = new FloodScene(this.engine, this.audio, {
+      onDone: () => {
+        this.floodScene.dispose(); this.floodScene = null;
+        this._showArkCare(species);
+      },
+    });
+    this.floodScene.setup();
+  }
+
   _showArkCare(species) {
+    // volta para a tela 2D de cuidar; pausa o 3D ao fundo
+    this.engine.setPaused(true);
     if (this.arkCare) this.arkCare.dispose();
     this.arkCare = new ArkCare(this.root, species, this.audio, {
       onComplete: () => {
         this.arkCare.hide();
-        this.engine.setPaused(false);
-        this.currentMission.complete();
+        this._showRainbow();
       },
       onFail: () => {
         this.arkCare.hide();
         this._onLevelFail(this._lastLevel);
       },
       onBack: () => {
-        // sair do cuidado: conclui o nível (já organizou)
         this.arkCare.hide();
-        this.engine.setPaused(false);
-        this.currentMission.complete();
+        this._showRainbow();
       },
     });
     this.arkCare.show();
     this.arkCare.start();
   }
 
+  _showRainbow() {
+    // final glorioso 3D
+    this.engine.clearUpdates();
+    this.engine.clearScene();
+    this.engine.setPaused(false);
+    this.rainbowScene = new RainbowScene(this.engine, this.audio, {
+      onDone: () => {
+        this.rainbowScene.dispose(); this.rainbowScene = null;
+        this.currentMission.complete();
+      },
+    });
+    this.rainbowScene.setup();
+  }
+
   _returnHome() {
+    if (this.floodScene) { this.floodScene.dispose(); this.floodScene = null; }
+    if (this.rainbowScene) { this.rainbowScene.dispose(); this.rainbowScene = null; }
     if (this.arkCare) { this.arkCare.dispose(); this.arkCare = null; }
     if (this.arkInterior) { this.arkInterior.dispose(); this.arkInterior = null; }
     if (this.currentMission) { this.currentMission.dispose(); this.currentMission = null; }
