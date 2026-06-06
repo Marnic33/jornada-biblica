@@ -262,3 +262,18 @@ canvas { display: block; touch-action: none; }
   .joystick { bottom: 80px; left: 20px; }
   .controls { font-size: 12px; bottom: 14px; }
 }
+
+/* ---------------- Legendas cinematográficas (dilúvio/arco-íris) ---------------- */
+.flood-caption {
+  position: fixed; left: 0; right: 0; bottom: 8%; z-index: 35;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  text-align: center; padding: 0 24px; pointer-events: none;
+  opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease;
+}
+.flood-caption.show { opacity: 1; transform: translateY(0); }
+.flood-caption p {
+  font-family: 'EB Garamond', serif; font-style: italic; font-size: clamp(18px, 2.6vw, 26px);
+  color: #f3e3c0; max-width: 700px; line-height: 1.4;
+  text-shadow: 0 2px 16px rgba(0,0,0,.8);
+}
+.flood-caption .btn { pointer-events: auto; }
