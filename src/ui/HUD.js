@@ -16,6 +16,7 @@ export class HUD {
         <div class="panel panel-counter">
           <h2 id="hud-counter-label">Progresso</h2>
           <div id="hud-counter" class="counter">0<small>/0</small></div>
+          <div id="hud-timer" class="timer"></div>
           <div id="hud-list" class="hud-list"></div>
         </div>
         <div class="hud-right">
@@ -58,6 +59,7 @@ export class HUD {
     this.verseText = this.el.querySelector('#hud-verse-text');
     this.verseRef = this.el.querySelector('#hud-verse-ref');
     this.controls = this.el.querySelector('#hud-controls');
+    this.timer = this.el.querySelector('#hud-timer');
   }
 
   show() { this.el.classList.add('visible'); }
@@ -84,6 +86,16 @@ export class HUD {
   }
   setObjective(text) { this.objective.textContent = text; }
   setControls(html) { this.controls.innerHTML = html; }
+
+  /** Atualiza o cronômetro. seconds<0 esconde. */
+  setTimer(seconds) {
+    if (seconds == null || seconds < 0) { this.timer.style.display = 'none'; return; }
+    this.timer.style.display = 'block';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    this.timer.textContent = `⏳ ${m}:${s.toString().padStart(2, '0')}`;
+    this.timer.classList.toggle('urgent', seconds <= 30);
+  }
 
   setList(items) {
     // items: [{label, done}]
