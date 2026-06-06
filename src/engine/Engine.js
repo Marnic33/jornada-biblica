@@ -117,14 +117,19 @@ export class Engine {
   }
 
   start() {
+    this.paused = false;
     const loop = () => {
       this._raf = requestAnimationFrame(loop);
       const dt = Math.min(this.clock.getDelta(), 0.05);
-      for (const cb of this.updateCallbacks) cb(dt, this.clock.elapsedTime);
+      if (!this.paused) {
+        for (const cb of this.updateCallbacks) cb(dt, this.clock.elapsedTime);
+      }
       this.composer.render();
     };
     loop();
   }
+
+  setPaused(p) { this.paused = p; }
 
   stop() { cancelAnimationFrame(this._raf); }
 
