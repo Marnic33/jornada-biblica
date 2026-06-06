@@ -277,3 +277,6 @@ canvas { display: block; touch-action: none; }
   text-shadow: 0 2px 16px rgba(0,0,0,.8);
 }
 .flood-caption .btn { pointer-events: auto; }
+
+/* baia em conflito (predador ao lado de presa) — destaque em tempo real */
+.bay.conflict { border-color: #e84a3a !important; border-style: solid; background: rgba(232,74,58,.18); animation: pulse 1s infinite; }
