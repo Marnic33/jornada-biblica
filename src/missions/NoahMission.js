@@ -68,15 +68,21 @@ export class NoahMission extends Mission {
 
     this._buildArk();
 
-    scatterVegetation(this.engine.scene, {
+    const treeObstacles = scatterVegetation(this.engine.scene, {
       area: this.level.area + 30, trees: 28, bushes: 20,
       avoid: (x, z) => Math.abs(x) < 6 || (z < -16 && Math.abs(x) < 16) || (Math.abs(z - 30) < 8),
     });
+    // obstáculos sólidos do mundo: árvores + arca (caixa grande aproximada por círculo)
+    this.obstacles = [
+      ...treeObstacles,
+      { x: 2, z: -26, r: 9 }, // casco da arca (deslocado p/ deixar a porta lateral livre)
+    ];
 
     this.noah = createNoah();
     this.noah.position.set(0, 0, 18);
     this.engine.scene.add(this.noah);
-    this.controller = new PlayerController(this.engine, this.noah, { speed: 9, bounds: 75, camHeight: 12, camDist: 16 });
+    this.controller = new PlayerController(this.engine, this.noah, { speed: 9, bounds: 75, camHeight: 12, camDist: 16, radius: 0.9 });
+    this.controller.setObstacles(this.obstacles);
 
     this._spawnAnimals();
 
@@ -87,7 +93,6 @@ export class NoahMission extends Mission {
     this.ui.setTimer(this.level.timeLimit ? this.timeLeft : -1);
     this._updateList();
     this.ui.show();
-    this.ui.showVerse(VERSES[0].t, VERSES[0].r);
 
     this.engine.onUpdate((dt, t) => this.update(dt, t));
   }
@@ -181,8 +186,11 @@ export class NoahMission extends Mission {
       const dist = a.obj.position.distanceTo(pp);
       if (!a.following && dist < 2.8) {
         a.following = true;
-        const v = VERSES[Math.min(a.partnerId, VERSES.length - 1)];
-        this.ui.showVerse(v.t, v.r);
+        // versículo aparece só na PRIMEIRA vez que o jogador encosta num animal
+        if (!this._verseShown) {
+          this._verseShown = true;
+          this.ui.showVerse(VERSES[0].t, VERSES[0].r, 4000);
+        }
       }
       if (a.following) {
         followIndex++;
@@ -196,6 +204,7 @@ export class NoahMission extends Mission {
           a.obj.rotation.y = Math.atan2(dir.x, dir.z);
           moving = true;
         }
+        this.controller.resolveCollisions(a.obj.position, 0.7);
         if (a.obj.position.distanceTo(this.arkZone) < 5) {
           a.collected = true; a.following = false;
           a.obj.position.copy(this.arkZone);
@@ -215,6 +224,7 @@ export class NoahMission extends Mission {
           a.obj.position.z = Math.max(-b, Math.min(b, a.obj.position.z));
           a.wander += Math.PI; // vira e volta para dentro
         }
+        this.controller.resolveCollisions(a.obj.position, 0.7);
         a.obj.rotation.y = a.wander;
         moving = Math.random() < 0.4;
       }
