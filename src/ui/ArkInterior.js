@@ -20,17 +20,19 @@ export class ArkInterior {
     this.onComplete = onComplete;
     this.onBack = onBack;
     this.selected = null;
-    // layout: distribui as baias em grade; vizinhança = adjacência na grade
-    this.cols = Math.min(species.length, 4);
+    // Baias EXTRAS (vazias) permitem separar predadores de presas.
+    // Com folga suficiente, o quebra-cabeça é sempre solucionável.
+    const predators = species.filter(s => SPECIES_INFO[s]?.type === 'predador').length;
+    this.bayCount = species.length + Math.max(2, predators + 1);
+    this.cols = Math.min(this.bayCount, 5);
     this.placement = {}; // bayIndex -> species
     this._build();
   }
 
   _build() {
-    const n = this.species.length;
     this.el = document.createElement('div');
     this.el.className = 'screen ark-interior';
-    const bays = Array.from({ length: n }, (_, i) =>
+    const bays = Array.from({ length: this.bayCount }, (_, i) =>
       `<div class="bay" data-bay="${i}"><div class="bay-label">Baia ${i + 1}</div><div class="bay-slot" id="slot-${i}"></div></div>`
     ).join('');
     const tokens = this.species.map(s =>
@@ -44,7 +46,7 @@ export class ArkInterior {
     this.el.innerHTML = `
       <div class="ark-header">
         <h1>Organize a Arca</h1>
-        <p class="hub-sub">Aloje cada par numa baia. <b>Predadores não podem ficar ao lado de presas.</b></p>
+        <p class="hub-sub">Aloje cada par numa baia. <b>Predadores não podem ficar ao lado de presas</b> — use as baias vazias para separá-los.</p>
       </div>
       <div class="bay-grid" style="grid-template-columns: repeat(${this.cols}, 1fr)">${bays}</div>
       <div class="ark-feedback" id="ark-feedback">Escolha um animal abaixo e clique numa baia.</div>
@@ -84,7 +86,7 @@ export class ArkInterior {
     for (const cc of [c - 1, c + 1]) {
       if (cc < 0 || cc >= this.cols) continue;
       const idx = r * this.cols + cc;
-      if (idx < this.species.length) out.push(idx);
+      if (idx < this.bayCount) out.push(idx);
     }
     return out;
   }
@@ -99,6 +101,7 @@ export class ArkInterior {
       const tok = this.el.querySelector(`.animal-token[data-species="${sp}"]`);
       tok.classList.remove('placed');
       this.feedback.textContent = `${sp} removido. Reposicione onde quiser.`;
+      this._highlightConflicts();
       return;
     }
     if (!this.selected) { this.feedback.textContent = 'Escolha um animal abaixo, depois clique numa baia.'; return; }
@@ -111,17 +114,19 @@ export class ArkInterior {
     tok.classList.add('placed'); tok.classList.remove('selected');
     this.audio?.collect();
     this.selected = null;
+    this._highlightConflicts();
     const remaining = this.species.length - Object.keys(this.placement).length;
-    this.feedback.textContent = remaining > 0 ? `Faltam ${remaining} par(es). Dica: deixe uma baia vazia entre predador e presa.` : 'Todas alojadas! Confira e confirme.';
+    const hasConflict = this._findConflicts().size > 0;
+    if (hasConflict) {
+      this.feedback.textContent = '🔴 As baias vermelhas têm predador e presa lado a lado. Afaste-os!';
+    } else {
+      this.feedback.textContent = remaining > 0 ? `Faltam ${remaining} par(es). Dica: ponha os predadores juntos, longe das presas.` : 'Tudo certo! Pode confirmar. ✓';
+    }
   }
 
-  _confirm() {
-    if (Object.keys(this.placement).length < this.species.length) {
-      this.feedback.textContent = 'Aloje todos os pares antes de confirmar.';
-      return;
-    }
-    // verifica regra: predador não pode ser vizinho de presa
-    let conflict = null;
+  /** Retorna o conjunto de índices de baias em conflito (predador ao lado de presa). */
+  _findConflicts() {
+    const bad = new Set();
     for (const [idxStr, sp] of Object.entries(this.placement)) {
       const idx = Number(idxStr);
       const type = SPECIES_INFO[sp]?.type;
@@ -130,26 +135,33 @@ export class ArkInterior {
         if (!nbSp) continue;
         const nbType = SPECIES_INFO[nbSp]?.type;
         if ((type === 'predador' && nbType === 'presa') || (type === 'presa' && nbType === 'predador')) {
-          conflict = { a: sp, b: nbSp };
-          break;
+          bad.add(idx); bad.add(nb);
         }
       }
-      if (conflict) break;
     }
-    if (conflict) {
-      this.feedback.innerHTML = `⚠️ ${conflict.a} não pode ficar ao lado de ${conflict.b}. Mova um deles!`;
+    return bad;
+  }
+
+  /** Pinta de vermelho, em tempo real, as baias em conflito. */
+  _highlightConflicts() {
+    const bad = this._findConflicts();
+    this.el.querySelectorAll('.bay').forEach(bay => {
+      const idx = Number(bay.dataset.bay);
+      bay.classList.toggle('conflict', bad.has(idx));
+    });
+  }
+
+  _confirm() {
+    if (Object.keys(this.placement).length < this.species.length) {
+      this.feedback.textContent = 'Aloje todos os pares antes de confirmar.';
+      this.feedback.classList.remove('error');
+      return;
+    }
+    const bad = this._findConflicts();
+    if (bad.size > 0) {
+      this.feedback.innerHTML = '⚠️ Ainda há predador e presa lado a lado (baias vermelhas). Afaste-os e confirme de novo.';
       this.feedback.classList.add('error');
-      // devolve só os dois em conflito (mantém o resto do arranjo)
-      for (const sp of [conflict.a, conflict.b]) {
-        const idx = Object.keys(this.placement).find(k => this.placement[k] === sp);
-        if (idx != null) {
-          delete this.placement[idx];
-          const slot = this.el.querySelector(`#slot-${idx}`);
-          slot.textContent = ''; slot.classList.remove('filled');
-          const tok = this.el.querySelector(`.animal-token[data-species="${sp}"]`);
-          tok.classList.remove('placed');
-        }
-      }
+      this._highlightConflicts();
     } else {
       this.audio?.victory();
       this.feedback.classList.remove('error');
