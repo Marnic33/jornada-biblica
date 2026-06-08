@@ -109,12 +109,13 @@ export class ArkCare {
 
   _update(dt) {
     this.elapsed += dt;
-    // recarrega recursos devagar
-    this.hay = Math.min(100, this.hay + dt * 6);
-    this.water = Math.min(100, this.water + dt * 6);
+    // recarrega recursos — escala com o nº de espécies (mais animais, mais recarga)
+    const refill = 6 + this.species.length * 1.6;
+    this.hay = Math.min(100, this.hay + dt * refill);
+    this.water = Math.min(100, this.water + dt * refill);
 
-    // fome/sede sobem; ritmo cresce com o nº de espécies
-    const rate = 2.2 + this.species.length * 0.15;
+    // fome/sede sobem; ritmo cresce um pouco com o nº de espécies (suavizado)
+    const rate = 2.0 + this.species.length * 0.1;
     let danger = false;
     for (const a of this.animals) {
       a.hunger = Math.min(100, a.hunger + dt * rate * (0.8 + Math.random() * 0.4));
