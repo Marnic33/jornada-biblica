@@ -8,6 +8,7 @@ import { ArkCare } from './ui/ArkCare.js';
 import { Joystick } from './ui/Joystick.js';
 import { FloodScene } from './ui/FloodScene.js';
 import { RainbowScene } from './ui/RainbowScene.js';
+import { PinballTable } from './ui/PinballTable.js';
 import { AudioManager } from './engine/AudioManager.js';
 import { NOAH_LEVELS } from './missions/noahLevels.js';
 
@@ -35,13 +36,31 @@ export class Game {
     this.joystick.el.style.display = (visible && Joystick.shouldShow()) ? 'block' : 'none';
   }
 
+  _showPinball() {
+    this.hub.hide();
+    this._setJoystick(false);
+    this.audio.stopMusic();
+    // o pinball usa o próprio overlay 2D; pausa o 3D ao fundo
+    this.engine.setPaused(true);
+    if (this.pinball) this.pinball.dispose();
+    this.pinball = new PinballTable(this.root, this.audio, {
+      onExit: () => {
+        this.pinball.dispose(); this.pinball = null;
+        this.engine.setPaused(false);
+        this._showHub();
+      },
+    });
+    this.pinball.show();
+    this.pinball.start();
+  }
+
   _showHub() {
     this.hud.hide();
     this._setJoystick(false);
     this.audio.stopMusic();
     if (this.hub) this.hub.dispose();
     if (this.levelSelect) { this.levelSelect.dispose(); this.levelSelect = null; }
-    this.hub = new Hub(this.root, (MissionClass) => this._onMissionChosen(MissionClass));
+    this.hub = new Hub(this.root, (MissionClass) => this._onMissionChosen(MissionClass), () => this._showPinball());
     this.hub.show();
   }
 
