@@ -336,3 +336,53 @@ export const ANIMAL_FACTORY = {
   'Ursos': createBear,
   'Macacos': createMonkey,
 };
+
+/* -------------------- GIGANTE (figura sombria) -------------------- */
+/** Figura colossal e sombria — "os gigantes daqueles dias" (Gn 6:4).
+ *  Estilizada como uma silhueta escura e ameaçadora, não realista. */
+export function createGiant() {
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1a1622, roughness: 1, flatShading: true, emissive: 0x0a0810 });
+  const darker = new THREE.MeshStandardMaterial({ color: 0x0e0b16, roughness: 1, flatShading: true });
+
+  // tronco enorme
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 6, 7), dark);
+  torso.position.y = 7; torso.castShadow = true; g.add(torso);
+  // ombros largos
+  const shoulders = new THREE.Mesh(new THREE.IcosahedronGeometry(2.4, 1), dark);
+  shoulders.position.y = 9.5; shoulders.scale.set(1.4, 0.7, 1); shoulders.castShadow = true; g.add(shoulders);
+  // cabeça
+  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3, 1), dark);
+  head.position.y = 11.6; head.castShadow = true; g.add(head);
+  // olhos brilhantes (a única luz)
+  for (const dx of [-0.5, 0.5]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff6a2a }));
+    eye.position.set(dx, 11.7, 1.1); g.add(eye);
+  }
+  // braços longos
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 6.5, 6), darker);
+    arm.position.set(s * 2.6, 7.5, 0); arm.rotation.z = s * 0.25; arm.castShadow = true;
+    g.add(arm); arms.push(arm);
+  }
+  // pernas
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 5, 6), darker);
+    leg.position.set(s * 1, 2.5, 0); leg.castShadow = true; g.add(leg); legs.push(leg);
+  }
+
+  g.userData.animate = (t, walking) => {
+    if (walking) {
+      legs[0].rotation.x = Math.sin(t * 3) * 0.4;
+      legs[1].rotation.x = -Math.sin(t * 3) * 0.4;
+      arms[0].rotation.x = -Math.sin(t * 3) * 0.3;
+      arms[1].rotation.x = Math.sin(t * 3) * 0.3;
+    }
+    g.children[2].rotation.z = Math.sin(t * 0.8) * 0.05; // cabeça
+  };
+  g.userData.arms = arms;
+  return g;
+}
