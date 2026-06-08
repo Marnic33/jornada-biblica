@@ -82,7 +82,8 @@ export class Game {
     }
     this.currentMission.setup();
     this._lastLevel = level;
-    this._setJoystick(true); // exploração: joystick visível
+    // joystick só em missões com avatar que anda livre (Noé); Davi é mira
+    this._setJoystick(MissionClass.meta.id === 'noe');
 
     this.hud.bindControls({
       onPause: () => { this.engine.setPaused(true); this._setJoystick(false); },
