@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Mission } from './Mission.js';
 import { createTerrain } from '../engine/WorldBuilder.js';
 import { PlayerController } from '../engine/PlayerController.js';
-import { ANIMAL_FACTORY, createNoah } from '../engine/Creatures.js';
+import { ANIMAL_FACTORY, createNoah, createGiant } from '../engine/Creatures.js';
 import { createSky, createMountains, createRiver, createClouds, scatterVegetation } from '../engine/Scenery.js';
 import { NOAH_LEVELS } from './noahLevels.js';
 
@@ -13,6 +13,21 @@ const VERSES = [
   { t: 'Entraram para junto de Noé na arca, dois a dois, de toda carne em que havia fôlego de vida.', r: 'Gênesis 7:15' },
   { t: 'E os que entraram eram macho e fêmea de toda carne; e o Senhor fechou a porta.', r: 'Gênesis 7:16' },
 ];
+
+const NOAH_LEVELS_VERSES = VERSES;
+
+// Nome singular do animal por sexo (para o rótulo "Leão ♂ / Leoa ♀")
+const ANIMAL_NAMES = {
+  'Leões':     { macho: 'Leão',     femea: 'Leoa' },
+  'Elefantes': { macho: 'Elefante', femea: 'Elefanta' },
+  'Ovelhas':   { macho: 'Carneiro', femea: 'Ovelha' },
+  'Camelos':   { macho: 'Camelo',   femea: 'Camela' },
+  'Cervos':    { macho: 'Cervo',    femea: 'Cerva' },
+  'Zebras':    { macho: 'Zebra (macho)', femea: 'Zebra (fêmea)' },
+  'Girafas':   { macho: 'Girafa (macho)', femea: 'Girafa (fêmea)' },
+  'Ursos':     { macho: 'Urso',     femea: 'Ursa' },
+  'Macacos':   { macho: 'Macaco',   femea: 'Macaca' },
+};
 
 export class NoahMission extends Mission {
   static meta = {
@@ -145,7 +160,9 @@ export class NoahMission extends Mission {
         this.engine.scene.add(c.group);
         this.animals.push({
           obj: c.group, animate: c.animate, name,
+          sex: k === 0 ? 'macho' : 'femea',
           partnerId: i, collected: false, following: false,
+          labelShown: false,
           wander: Math.random() * Math.PI * 2,
         });
       }
@@ -160,6 +177,8 @@ export class NoahMission extends Mission {
   }
 
   update(dt, t) {
+    // sequência cinematográfica do gigante (após o tempo esgotar)
+    if (this.giantActive) { this._updateGiant(dt, t); return; }
     if (this.finished) return;
     this.controller.update(dt);
     this.noah.userData.animate?.(t, this.controller.moving);
@@ -184,6 +203,12 @@ export class NoahMission extends Mission {
       if (a.collected) { a.animate(t, false); continue; }
 
       const dist = a.obj.position.distanceTo(pp);
+      // rótulo de nome+sexo aparece ao se aproximar (uma vez por animal)
+      if (!a.labelShown && dist < 5) {
+        a.labelShown = true;
+        const nm = ANIMAL_NAMES[a.name]?.[a.sex] || a.name;
+        this.ui.showAnimalName(nm, a.sex === 'macho');
+      }
       if (!a.following && dist < 2.8) {
         a.following = true;
         // versículo aparece só na PRIMEIRA vez que o jogador encosta num animal
@@ -258,6 +283,76 @@ export class NoahMission extends Mission {
     this.failed = true;
     this.finished = true;
     this.ui.setTimer(-1);
-    this.onFail?.(this.level);
+    this.controller.enabled = false;
+    // anima a chegada do gigante levando os animais não salvos
+    this._startGiantSequence();
+  }
+
+  _startGiantSequence() {
+    this.giantActive = true;
+    this.giantTime = 0;
+    // escurece a cena
+    if (this.engine.sun) this.engine.sun.intensity = 0.6;
+    this.engine.scene.fog.color.setHex(0x2a2230);
+    this.engine.scene.fog.near = 20; this.engine.scene.fog.far = 70;
+
+    // animais ainda livres (não recolhidos) viram alvos
+    this.giantTargets = this.animals.filter(a => !a.collected);
+
+    // cria o gigante atrás do cenário
+    this.giant = createGiant();
+    this.giant.position.set(0, 0, -55);
+    this.giant.scale.setScalar(1.6);
+    this.engine.scene.add(this.giant);
+
+    // legenda dramática citando Gênesis 6:4
+    this._giantCaption = document.createElement('div');
+    this._giantCaption.className = 'flood-caption show';
+    this._giantCaption.innerHTML = `
+      <p>"Havia naqueles dias gigantes na terra..." — Gênesis 6:4</p>
+    `;
+    document.getElementById('app').appendChild(this._giantCaption);
+
+    this.audio?.thunder?.();
+  }
+
+  _updateGiant(dt, t) {
+    this.giantTime += dt;
+    const g = this.giant;
+    g.userData.animate?.(t, true);
+
+    // o gigante caminha em direção ao centro do campo
+    if (g.position.z < -8) {
+      g.position.z += 7 * dt;
+      g.rotation.y = 0;
+    }
+
+    // pega os animais: eles flutuam até a mão do gigante e somem
+    let pending = 0;
+    for (const a of this.giantTargets) {
+      if (a._taken) continue;
+      pending++;
+      // só começa a puxar quando o gigante já está perto
+      if (g.position.z > -20) {
+        const target = new THREE.Vector3(g.position.x + 2.5, 8, g.position.z + 1);
+        a.obj.position.lerp(target, dt * 1.2);
+        a.obj.scale.multiplyScalar(1 - dt * 0.4);
+        a.obj.rotation.y += dt * 4;
+        if (a.obj.position.distanceTo(target) < 2) { a._taken = true; a.obj.visible = false; }
+      }
+    }
+
+    // câmera dramática olhando o gigante
+    const cam = this.engine.camera;
+    const desired = new THREE.Vector3(g.position.x + 14, 12, g.position.z + 22);
+    cam.position.lerp(desired, 0.04);
+    cam.lookAt(g.position.x, 8, g.position.z);
+
+    // após pegar tudo (ou tempo suficiente), encerra
+    if ((pending === 0 || this.giantTime > 7)) {
+      this.giantActive = false;
+      this._giantCaption?.remove();
+      this.onFail?.(this.level);
+    }
   }
 }
