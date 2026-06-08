@@ -37,6 +37,7 @@ export class HUD {
         <cite id="hud-verse-ref"></cite>
       </div>
       <div id="hud-controls" class="controls"></div>
+      <div id="hud-toast" class="animal-toast"></div>
       <div id="hud-pause-overlay" class="pause-overlay">
         <div class="pause-card">
           <h2>Pausado</h2>
@@ -60,6 +61,15 @@ export class HUD {
     this.verseRef = this.el.querySelector('#hud-verse-ref');
     this.controls = this.el.querySelector('#hud-controls');
     this.timer = this.el.querySelector('#hud-timer');
+    this.toast = this.el.querySelector('#hud-toast');
+  }
+
+  /** Mostra rapidamente o nome do animal (ex.: "Leão ♂"). */
+  showAnimalName(text, isMale) {
+    this.toast.innerHTML = `${text} <span class="sex ${isMale ? 'male' : 'female'}">${isMale ? '♂' : '♀'}</span>`;
+    this.toast.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.toast.classList.remove('show'), 2200);
   }
 
   show() { this.el.classList.add('visible'); }
