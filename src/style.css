@@ -280,3 +280,16 @@ canvas { display: block; touch-action: none; }
 
 /* baia em conflito (predador ao lado de presa) — destaque em tempo real */
 .bay.conflict { border-color: #e84a3a !important; border-style: solid; background: rgba(232,74,58,.18); animation: pulse 1s infinite; }
+
+/* ---------------- Rótulo de nome do animal ---------------- */
+.animal-toast {
+  position: fixed; top: 16%; left: 50%; transform: translateX(-50%) translateY(-10px);
+  background: rgba(26,18,8,.85); border: 1px solid rgba(212,168,83,.5);
+  border-radius: 30px; padding: 8px 22px; color: var(--gold-bright);
+  font-family: 'Cinzel', serif; font-size: 18px; letter-spacing: 1px;
+  opacity: 0; transition: opacity .3s ease, transform .3s ease; pointer-events: none; z-index: 14;
+}
+.animal-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.animal-toast .sex { font-size: 20px; margin-left: 4px; }
+.animal-toast .sex.male { color: #6ab0e0; }
+.animal-toast .sex.female { color: #e88ab0; }
