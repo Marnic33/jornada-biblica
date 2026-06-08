@@ -5,9 +5,10 @@ import { MISSIONS, UPCOMING } from '../missions/index.js';
  * Lê o progresso salvo do localStorage para mostrar quais já foram completadas.
  */
 export class Hub {
-  constructor(root, onSelect) {
+  constructor(root, onSelect, onPinball) {
     this.root = root;
     this.onSelect = onSelect;
+    this.onPinball = onPinball;
     this._build();
   }
 
@@ -51,6 +52,18 @@ export class Hub {
             <span class="card-soon">Em breve</span>
           </div>`).join('')}
       </div>
+      <div class="hub-arcade">
+        <h2 class="arcade-title">Arcade Bíblico</h2>
+        <button class="mission-card arcade-card" id="pinball-card" style="--accent:#7fb0ff">
+          <div class="card-icon">🎯</div>
+          <div class="card-body">
+            <h3>Pinball do Dilúvio</h3>
+            <p>Rebata a bola, acerte os animais e salve cada par na arca!</p>
+            <span class="card-ref">Mesa temática · Noé</span>
+          </div>
+          <span class="card-play">Jogar →</span>
+        </button>
+      </div>
       <p class="hub-foot">Mais histórias serão acrescentadas ao longo do tempo.</p>
     `;
     this.root.appendChild(this.el);
@@ -60,6 +73,7 @@ export class Hub {
         if (M) this.onSelect(M);
       });
     });
+    this.el.querySelector('#pinball-card').addEventListener('click', () => this.onPinball?.());
   }
 
   show() { this.el.classList.remove('gone'); requestAnimationFrame(() => this.el.classList.remove('hidden')); }
