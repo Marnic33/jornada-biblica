@@ -386,3 +386,83 @@ export function createGiant() {
   g.userData.arms = arms;
   return g;
 }
+
+/* -------------------- GOLIAS (gigante filisteu) -------------------- */
+/** Golias — guerreiro filisteu colossal, com armadura de bronze.
+ *  Estilizado, imponente mas não sombrio (é humano, não demônio). */
+export function createGoliath() {
+  const g = new THREE.Group();
+  const bronze = mat(0x9a7b3a, 0.6), bronzeD = mat(0x6e5526, 0.6);
+  const skin = mat(0xc89a6a, 0.8), tunic = mat(0x6a2a2a, 0.9);
+
+  // pernas
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 3.2, 7), bronzeD);
+    leg.position.set(s * 0.6, 1.6, 0); leg.castShadow = true; g.add(leg); legs.push(leg);
+  }
+  // túnica/saiote
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 1.6, 8), tunic);
+  skirt.position.y = 3.6; skirt.castShadow = true; g.add(skirt);
+  // tronco com couraça
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 2.6, 8), bronze);
+  torso.position.y = 5.4; torso.castShadow = true; g.add(torso);
+  // ombros
+  const shoulders = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), bronze);
+  shoulders.position.y = 6.6; shoulders.scale.set(1.4, 0.6, 1); shoulders.castShadow = true; g.add(shoulders);
+  // cabeça + elmo
+  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.7, 2), skin);
+  head.position.y = 7.6; head.castShadow = true; g.add(head);
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.78, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), bronze);
+  helmet.position.y = 7.7; g.add(helmet);
+  // a TESTA (alvo) — pequeno marcador claro
+  const target = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), mat(0xe8c0a0, 0.5));
+  target.position.set(0, 7.75, 0.62); g.add(target);
+  g.userData.targetWorld = target;
+  // braços
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 2.8, 6), skin);
+    arm.position.set(s * 1.4, 5.4, 0); arm.rotation.z = s * 0.2; arm.castShadow = true;
+    g.add(arm); arms.push(arm);
+  }
+  // lança na mão direita
+  const spear = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 6, 6), mat(0x5a3d22));
+  spear.position.set(1.8, 5.5, 0); g.add(spear);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 6), bronze);
+  tip.position.set(1.8, 8.6, 0); g.add(tip);
+
+  g.userData.animate = (t, walking) => {
+    if (walking) {
+      legs[0].rotation.x = Math.sin(t * 2.5) * 0.25;
+      legs[1].rotation.x = -Math.sin(t * 2.5) * 0.25;
+    }
+    g.children[g.children.length - 5].rotation.z = Math.sin(t * 0.6) * 0.04;
+  };
+  return g;
+}
+
+/* -------------------- DAVI (jovem pastor) -------------------- */
+export function createDavid() {
+  const g = new THREE.Group();
+  const tunic = mat(0xc8a050, 0.9), tunicD = mat(0xa07c38, 0.9), skin = mat(0xd8a878, 0.8);
+  const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.45, 1.1, 8), tunic);
+  robe.position.y = 0.85; robe.castShadow = true; g.add(robe);
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.5, 8), tunicD);
+  skirt.position.y = 0.35; g.add(skirt);
+  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.26, 2), skin);
+  head.position.y = 1.6; head.castShadow = true; g.add(head);
+  const hair = new THREE.Mesh(new THREE.IcosahedronGeometry(0.29, 1), mat(0x5a3d22, 1));
+  hair.position.y = 1.66; hair.scale.set(1, 0.8, 1); g.add(hair);
+  // braços
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.4, 4, 6), tunic);
+    arm.position.set(s * 0.35, 1.0, 0); g.add(arm); arms.push(arm);
+  }
+  g.userData.arms = arms;
+  g.userData.animate = (t, moving) => {
+    if (moving) { arms[0].rotation.x = Math.sin(t * 8) * 0.4; arms[1].rotation.x = -Math.sin(t * 8) * 0.4; }
+  };
+  return g;
+}
